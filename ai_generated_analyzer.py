@@ -7,7 +7,7 @@ from openai import OpenAI
 class AIGeneratedAnalyzer:
     def __init__(self):
         #openai.api_key = os.getenv('OPENAI_API_KEY')  # Set your OpenAI API key
-        self.client = OpenAI(api_key="sk-2f67a54dc36843a1935c3f12c5893b2a",base_url="https://api.deepseek.com")
+        self.client = OpenAI(api_key="YOUR_DEEPSEEK_KEY",base_url="https://api.deepseek.com")
 
     def analyze_text(self, text):
         prompt = f"""Analyze provided text for AI generation indicators. You are an expert AI-generated text analyzer. And you are given a text. MUST Provide following information:
