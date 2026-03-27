@@ -4,15 +4,23 @@ import io
 import docx2txt
 import PyPDF2
 import pandas as pd
+from typing import Optional
 
 def extract_text_from_file(uploaded_file):
     """Extract text from various file formats"""
-    file_type = uploaded_file.type
+    file_type = uploaded_file.type or ""
+    file_name = (uploaded_file.name or "").lower()
     
     try:
-        if 'text/plain' in file_type:
-            # Text files
-            return uploaded_file.getvalue().decode('utf-8')
+        if 'text/plain' in file_type or file_name.endswith(".txt"):
+            # Text files with encoding fallback
+            raw_bytes = uploaded_file.getvalue()
+            for encoding_name in ("utf-8", "utf-8-sig", "gbk", "gb2312", "big5"):
+                try:
+                    return raw_bytes.decode(encoding_name)
+                except UnicodeDecodeError:
+                    continue
+            return raw_bytes.decode("latin-1", errors="ignore")
             
         elif 'application/pdf' in file_type:
             # PDF files
@@ -36,6 +44,12 @@ def extract_text_from_file(uploaded_file):
     except Exception as e:
         st.error(f"Error processing file: {str(e)}")
         return None
+
+def format_score_as_percentage(score_value: Optional[int]) -> str:
+    if score_value is None:
+        return "0%"
+    clamped_score_value = max(0, min(100, int(score_value)))
+    return f"{clamped_score_value}%"
 
 def main():
     st.set_page_config(page_title="AI Content Detector", page_icon="🧠", layout="wide")
@@ -313,18 +327,19 @@ def main():
             score_col, conclusion_col = st.columns([1, 2])
             with score_col:
                 gauge_color = "red" if result['score'] > 70 else "orange" if result['score'] > 40 else "green"
+                percentage_text = format_score_as_percentage(result['score'])
                 st.markdown(f"""
                 <div style="text-align: center; padding: 0.5rem;">
-                    <h4 style="margin-bottom: 0.5rem; font-size: 1.1rem; color: #64748b;">AI Score</h4>
+                    <h4 style="margin-bottom: 0.5rem; font-size: 1.1rem; color: #64748b;">AI Probability</h4>
                     <div style="position: relative; width: 150px; height: 150px; margin: 0 auto; border-radius: 50%; background: conic-gradient({gauge_color} {result['score']}%, #e2e8f0 0); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
                         <div style="width: 120px; height: 120px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
                             <div style="font-size: 2.5rem; font-weight: bold; color: {gauge_color}; text-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-                                {result['score']}
+                                {percentage_text}
                             </div>
                         </div>
                     </div>
                     <div style="margin-top: 1rem; font-size: 0.9rem; color: #64748b;">
-                        Score out of 100
+                        Percentage format
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
